@@ -1,19 +1,16 @@
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-
-import javax.validation.constraints.Null;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Bot extends TelegramLongPollingBot {
 
     private ArrayList<Expense> expenses = new ArrayList<Expense>();
+    private HashMap<Long, String> userStates = new HashMap<>();
     private HashMap<Long, ArrayList<Expense>> expenseMap = new HashMap<>();
 
 
@@ -23,12 +20,28 @@ public class Bot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
+
         SendMessage sm = new SendMessage();
 
         Long userId = update.getMessage().getChatId();
 
         String text = update.getMessage().getText();
         sm.setChatId(userId);
+
+        if(userStates.containsKey(userId) && userStates.get(userId).equals("WAITING_FOR_EXPENSE")){
+            String[] expen = text.split(" ");
+            if(expen.length < 2){
+                sm.setText("Не правильно заданий формат. Коректний формат:  Категорія Сума (Наприклад: Піцуня 500)");
+            } else {
+                String category = expen[0];
+                double amount = Double.parseDouble(expen[1]);
+
+                expenseMap.putIfAbsent(userId, new ArrayList<>());
+                expenseMap.get(userId).add(new Expense(amount, category));
+
+                sm.setText("Витрату додано: " + category + ": " + amount);
+            }
+        }
 
         if (text.equals("/start")){
             sm.setText("Привіт, я твій персональний бот для трекінгу коштів і відслідковування витрат! Чим допомогти?");
@@ -56,18 +69,8 @@ public class Bot extends TelegramLongPollingBot {
         } else if(text.equals("/status")){
             sm.setText("Все працює стабільно!");
         } else if (text.startsWith("/add")){
-            String[] expen = text.split(" ");
-            if(expen.length < 3){
-                sm.setText("Не правильно заданий формат. Коректний формат: /add Категорія Сума (Наприклад: /add Піцуня 500)");
-            } else {
-                String category = expen[1];
-                double amount = Double.parseDouble(expen[2]);
-
-                expenseMap.putIfAbsent(userId, new ArrayList<>());
-                expenseMap.get(userId).add(new Expense(amount, category));
-
-                sm.setText("Витрату додано: " + category + ": " + amount);
-            }
+            sm.setText("Напиши, будь ласка, витрату. Формат:  Категорія Сума (Наприклад: Піцуня 500)");
+            userStates.put(userId, "WAITING_FOR_EXPENSE");
         } else if(text.equals("/show")){
             ArrayList<Expense> userExpenses = expenseMap.get(userId);
 
