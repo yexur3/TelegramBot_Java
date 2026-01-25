@@ -1,6 +1,9 @@
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import javax.validation.constraints.Null;
@@ -30,6 +33,25 @@ public class Bot extends TelegramLongPollingBot {
         if (text.equals("/start")){
             sm.setText("Привіт, я твій персональний бот для трекінгу коштів і відслідковування витрат! Чим допомогти?");
 
+            ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+            keyboardMarkup.setResizeKeyboard(true);
+            keyboardMarkup.setOneTimeKeyboard(false);
+            keyboardMarkup.setSelective(true);
+
+            ArrayList<KeyboardRow> keyboard = new ArrayList<>();
+
+            KeyboardRow row1 = new KeyboardRow();
+            row1.add("/status");
+            row1.add("/show");
+
+            KeyboardRow row2 = new KeyboardRow();
+            row2.add("/add");
+
+            keyboard.add(row1);
+            keyboard.add(row2);
+
+            keyboardMarkup.setKeyboard(keyboard);
+            sm.setReplyMarkup(keyboardMarkup);
 
         } else if(text.equals("/status")){
             sm.setText("Все працює стабільно!");
