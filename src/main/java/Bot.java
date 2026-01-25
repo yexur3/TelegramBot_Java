@@ -3,14 +3,16 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import javax.validation.constraints.Null;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Scanner;
+import java.util.HashMap;
 
 public class Bot extends TelegramLongPollingBot {
 
-    private ArrayList<String> notes = new ArrayList<String>();
+    private ArrayList<Expense> expenses = new ArrayList<Expense>();
+    private HashMap<Long, ArrayList<Expense>> expenseMap = new HashMap<>();
 
-    SendMessage sm = new SendMessage();
 
     public Bot(){
         super("8044753239:AAHMQyKlXJl7GwOK5BbLRqS6umqgmHqKWwM");
@@ -18,33 +20,48 @@ public class Bot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
+        SendMessage sm = new SendMessage();
+
+        Long userId = update.getMessage().getChatId();
+
         String text = update.getMessage().getText();
-        String chatId = update.getMessage().getChatId().toString();
-        sm.setChatId(chatId);
+        sm.setChatId(userId);
 
         if (text.equals("/start")){
             sm.setText("Привіт, я твій персональний бот для трекінгу коштів і відслідковування витрат! Чим допомогти?");
+
+
         } else if(text.equals("/status")){
             sm.setText("Все працює стабільно!");
         } else if (text.startsWith("/add")){
-            String note = text.replace("/add", "").trim();
-
-            if(note.isEmpty()){
-                sm.setText("ви не написали нічого");
+            String[] expen = text.split(" ");
+            if(expen.length < 3){
+                sm.setText("Не правильно заданий формат. Коректний формат: /add Категорія Сума (Наприклад: /add Піцуня 500)");
             } else {
-                notes.add(note);
-                sm.setText("текст додано: " + notes);
+                String category = expen[1];
+                double amount = Double.parseDouble(expen[2]);
+
+                expenseMap.putIfAbsent(userId, new ArrayList<>());
+                expenseMap.get(userId).add(new Expense(amount, category));
+
+                sm.setText("Витрату додано: " + category + ": " + amount);
             }
-
         } else if(text.equals("/show")){
-            if(notes.isEmpty()){
-                sm.setText("список порожній");
+            ArrayList<Expense> userExpenses = expenseMap.get(userId);
+
+            if(userExpenses == null || userExpenses.isEmpty()){
+                sm.setText("Твій список витрат пустий");
             } else {
-                String allNotes =  "Твої нотатки:\n";
-                for(String note : notes){
-                    allNotes += "- " + note + "\n";
+                String strtotal = "Твої витрати:\n";
+                double total = 0;
+
+                for(Expense e : userExpenses){
+                    strtotal += "- " + e.getCategory() + ": " + e.getAmount() + " грн " + e.getDate() + "\n";
+                    total += e.getAmount();
                 }
-                sm.setText(allNotes);
+
+                strtotal += "Сума всіх витрат: " + total + " грн";
+                sm.setText(strtotal);
             }
         }
         try {
