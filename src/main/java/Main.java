@@ -4,8 +4,14 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 public class Main {
     public static void main(String[] args) throws TelegramApiException {
-        TelegramBotsApi tg = new TelegramBotsApi(DefaultBotSession.class);
-        tg.registerBot(new Bot());
+        DatabaseHandler.initDatabase();
 
+        TelegramBotsApi tg = new TelegramBotsApi(DefaultBotSession.class);
+        try{
+            tg.registerBot(new Bot());
+            System.out.println("bot is ready");
+        } catch (TelegramApiException e){
+            e.printStackTrace();
+        }
     }
 }

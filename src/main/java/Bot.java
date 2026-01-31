@@ -33,14 +33,20 @@ public class Bot extends TelegramLongPollingBot {
             if(expen.length < 2){
                 sm.setText("Не правильно заданий формат. Коректний формат:  Категорія Сума (Наприклад: Піцуня 500)");
             } else {
-                String category = expen[0];
-                double amount = Double.parseDouble(expen[1]);
+                try{
+                    String category = expen[0];
+                    double amount = Double.parseDouble(expen[1]);
 
-                expenseMap.putIfAbsent(userId, new ArrayList<>());
-                expenseMap.get(userId).add(new Expense(amount, category));
+                    DatabaseHandler.addExpense(userId, category, amount);
 
-                sm.setText("Витрату додано: " + category + ": " + amount);
+                    userStates.remove(userId);
+                    sm.setText("Витрату додано: " + category + ": " + amount);
+                } catch (NumberFormatException e){
+                    sm.setText("Enter a number");
+                }
             }
+            send(sm);
+            return;
         }
 
         if (text.equals("/start")){
@@ -72,29 +78,38 @@ public class Bot extends TelegramLongPollingBot {
             sm.setText("Напиши, будь ласка, витрату. Формат:  Категорія Сума (Наприклад: Піцуня 500)");
             userStates.put(userId, "WAITING_FOR_EXPENSE");
         } else if(text.equals("/show")){
-            ArrayList<Expense> userExpenses = expenseMap.get(userId);
+
+            // КРИТИЧНЕ МІСЦЕ: Читаємо з бази, а не з карти!
+            ArrayList<Expense> userExpenses = DatabaseHandler.getExpenses(userId);
 
             if(userExpenses == null || userExpenses.isEmpty()){
-                sm.setText("Твій список витрат пустий");
+                sm.setText("Твій список витрат у базі поки що пустий");
             } else {
-                String strtotal = "Твої витрати:\n";
+                StringBuilder strtotal = new StringBuilder("Твої витрати з бази:\n");
                 double total = 0;
 
                 for(Expense e : userExpenses){
-                    strtotal += "- " + e.getCategory() + ": " + e.getAmount() + " грн " + e.getDate() + "\n";
+                    strtotal.append("- ").append(e.getCategory()).append(": ")
+                            .append(e.getAmount()).append(" грн\n");
                     total += e.getAmount();
                 }
 
-                strtotal += "Сума всіх витрат: " + total + " грн";
-                sm.setText(strtotal);
+                strtotal.append("\n💰 Разом: ").append(total).append(" грн");
+                sm.setText(strtotal.toString());
             }
-        }
-        try {
-            execute(sm);
-        } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
-        }
+        } else if(text.equals("/delete")){
 
+        }
+        send(sm);
+
+    }
+
+    private void send(SendMessage sm) {
+        try{
+            execute(sm);
+        } catch (TelegramApiException e ){
+            e.printStackTrace();
+        }
     }
 
     @Override
