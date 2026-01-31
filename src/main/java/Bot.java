@@ -15,7 +15,7 @@ public class Bot extends TelegramLongPollingBot {
 
 
     public Bot(){
-        super("8044753239:AAHMQyKlXJl7GwOK5BbLRqS6umqgmHqKWwM");
+        super(System.getenv("BOT_TOKEN"));
     }
 
     @Override
